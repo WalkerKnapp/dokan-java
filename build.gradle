@@ -1,7 +1,7 @@
 plugins {
     id 'java'
+    id 'maven'
     id 'eclipse'
-    id 'maven-publish'
 }
 
 sourceCompatibility = 1.8
@@ -9,7 +9,8 @@ targetCompatibility = 1.8
 
 version = '1.1.0'
 
-group = "com.dokany.dokan-java"
+group = "com.github.WalkerKnapp"
+description = "Dokany Java Wrapper"
 
 repositories {
     jcenter()
@@ -22,4 +23,8 @@ dependencies {
     testCompile 'ch.qos.logback:logback-classic:1.2.3'
     testCompile 'org.jetbrains.xodus:xodus-vfs:1.0.4'
     testCompile 'commons-io:commons-io:2.5'
+}
+
+javadoc {
+    failOnError = false
 }
