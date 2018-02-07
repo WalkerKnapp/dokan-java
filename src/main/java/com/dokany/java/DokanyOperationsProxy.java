@@ -9,12 +9,7 @@ import com.dokany.java.constants.CreationDisposition;
 import com.dokany.java.constants.ErrorCode;
 import com.dokany.java.constants.FileAttribute;
 import com.dokany.java.constants.NtStatus;
-import com.dokany.java.structure.ByHandleFileInfo;
-import com.dokany.java.structure.DokanyFileInfo;
-import com.dokany.java.structure.EnumIntegerSet;
-import com.dokany.java.structure.FileData;
-import com.dokany.java.structure.FreeSpace;
-import com.dokany.java.structure.VolumeInformation;
+import com.dokany.java.structure.*;
 import com.sun.jna.Pointer;
 import com.sun.jna.WString;
 import com.sun.jna.platform.win32.Kernel32;
@@ -23,15 +18,16 @@ import com.sun.jna.platform.win32.WinBase.FILETIME;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.LongByReference;
 
-import lombok.NonNull;
-import lombok.val;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Set;
 
 /**
  * Implementation of {@link DokanyOperations} which connects to {@link DokanyFileSystem}.
  */
-@Slf4j
 final class DokanyOperationsProxy extends DokanyOperations {
+	private static final Logger log = LoggerFactory.getLogger(DokanyOperationsProxy.class);
 
 	final DokanyFileSystem fileSystem;
 	final VolumeInformation volumeInfo;
@@ -39,7 +35,7 @@ final class DokanyOperationsProxy extends DokanyOperations {
 
 	public final static int MAX_PATH = 260;
 
-	DokanyOperationsProxy(@NonNull final DokanyFileSystem fileSystem) {
+	DokanyOperationsProxy(final DokanyFileSystem fileSystem) {
 		this.fileSystem = fileSystem;
 		volumeInfo = fileSystem.getVolumeInfo();
 		freeSpace = fileSystem.getFreeSpace();
@@ -114,17 +110,17 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class ZwCreateFile implements DokanyOperations.ZwCreateFile {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
-		        @NonNull final WinBase.SECURITY_ATTRIBUTES securityContext,
+		        final WString path,
+		        final WinBase.SECURITY_ATTRIBUTES securityContext,
 		        final int rawDesiredAccess,
 		        final int rawFileAttributes,
 		        final int rawShareAccess,
 		        final int rawCreateDisposition,
 		        final int rawCreateOptions,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final DokanyFileInfo dokanyFileInfo) {
 
 			// Normalize path
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 
 			Kernel32.INSTANCE.CreateFile(normalizedPath, rawDesiredAccess, rawShareAccess, securityContext, rawCreateDisposition, rawFileAttributes, null);
 
@@ -217,14 +213,14 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class Cleanup implements DokanyOperations.Cleanup {
 		@Override
 		public void callback(
-		        @NonNull final WString path,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final WString path,
+		        final DokanyFileInfo dokanyFileInfo) {
 			if (isSkipFile(path)) {
 				return;
 			}
 
 			try {
-				val normalizedPath = DokanyUtils.normalize(path);
+				String normalizedPath = DokanyUtils.normalize(path);
 
 				// TODO: Can cleanup always be done here not matter the FS?
 
@@ -241,8 +237,8 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class CloseFile implements DokanyOperations.CloseFile {
 		@Override
 		public void callback(
-		        @NonNull final WString path,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final WString path,
+		        final DokanyFileInfo dokanyFileInfo) {
 			if (isSkipFile(path)) {
 				return;
 			}
@@ -250,7 +246,7 @@ final class DokanyOperationsProxy extends DokanyOperations {
 			try {
 				// TODO: Can close always be done here not matter the FS?
 				// dokanyFileInfo.Context = 0;
-				val normalizedPath = DokanyUtils.normalize(path);
+				String normalizedPath = DokanyUtils.normalize(path);
 				// fileSystem.close(normalizedPath, dokanyFileInfo);
 
 				log.trace("Closed file: {}", normalizedPath);
@@ -263,9 +259,9 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class FindFiles implements DokanyOperations.FindFiles {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
-		        @NonNull final DokanyOperations.FillWin32FindData rawFillFindData,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final WString path,
+		        final DokanyOperations.FillWin32FindData rawFillFindData,
+		        final DokanyFileInfo dokanyFileInfo) {
 			return FindFilesWithPattern.callback(path, null, rawFillFindData, dokanyFileInfo);
 		}
 	}
@@ -273,16 +269,16 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class FindFilesWithPattern implements DokanyOperations.FindFilesWithPattern {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
-		        @NonNull final WString searchPattern,
-		        @NonNull final DokanyOperations.FillWin32FindData rawFillFindData,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final WString path,
+		        final WString searchPattern,
+		        final DokanyOperations.FillWin32FindData rawFillFindData,
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val pathToSearch = DokanyUtils.normalize(path);
+			String pathToSearch = DokanyUtils.normalize(path);
 			log.trace("FindFilesWithPattern {}", pathToSearch);
 
 			try {
-				val filesFound = fileSystem.findFilesWithPattern(pathToSearch, dokanyFileInfo, DokanyUtils.wStrToStr(searchPattern));
+				Set<WinBase.WIN32_FIND_DATA> filesFound = fileSystem.findFilesWithPattern(pathToSearch, dokanyFileInfo, DokanyUtils.wStrToStr(searchPattern));
 				log.debug("Found {} paths", filesFound.size());
 				try {
 					filesFound.forEach(file -> {
@@ -302,14 +298,14 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class ReadFile implements DokanyOperations.ReadFile {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
-		        @NonNull final Pointer buffer,
+		        final WString path,
+		        final Pointer buffer,
 		        final int bufferLength,
-		        @NonNull final IntByReference readLengthRef,
+		        final IntByReference readLengthRef,
 		        final long offset,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.debug("ReadFile: {} with readLength ", normalizedPath, bufferLength);
 
 			if (dokanyFileInfo.isDirectory()) {
@@ -338,14 +334,14 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class WriteFile implements DokanyOperations.WriteFile {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
-		        @NonNull final Pointer buffer,
+		        final WString path,
+		        final Pointer buffer,
 		        final int numberOfBytesToWrite,
-		        @NonNull final IntByReference numberOfBytesWritten,
+		        final IntByReference numberOfBytesWritten,
 		        final long offset,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.debug("WriteFile: {}", normalizedPath);
 
 			try {
@@ -364,10 +360,10 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class FlushFileBuffers implements DokanyOperations.FlushFileBuffers {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final WString path,
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.trace("FlushFileBuffers: {}", normalizedPath);
 			try {
 				fileSystem.flushFileBuffers(normalizedPath);
@@ -381,11 +377,11 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class GetFileInformation implements DokanyOperations.GetFileInformation {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
-		        @NonNull final ByHandleFileInfo info,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final WString path,
+		        final ByHandleFileInfo info,
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.debug("GetFileInformation: {}", normalizedPath);
 			log.trace("dokanyFileInfo in getinfo: {}", dokanyFileInfo);
 
@@ -393,7 +389,7 @@ final class DokanyOperationsProxy extends DokanyOperations {
 				return NtStatus.FILE_INVALID.getMask();
 			}
 			try {
-				val retrievedInfo = fileSystem.getInfo(normalizedPath);
+				FullFileInfo retrievedInfo = fileSystem.getInfo(normalizedPath);
 				retrievedInfo.copyTo(info);
 				return ErrorCode.SUCCESS.getMask();
 			} catch (final Throwable t) {
@@ -406,11 +402,11 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class SetFileAttributes implements DokanyOperations.SetFileAttributes {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
+		        final WString path,
 		        final int attributes,
-		        @NonNull final DokanyFileInfo rawInfo) {
+		        final DokanyFileInfo rawInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			// TODO: fix
 			final EnumIntegerSet<FileAttribute> attribs = null;// FileAttribute.fromInt(attributes);
 			log.trace("SetFileAttributes as {} for {}", attribs, normalizedPath);
@@ -427,13 +423,13 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class SetFileTime implements DokanyOperations.SetFileTime {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
-		        @NonNull final FILETIME creationTime,
-		        @NonNull final FILETIME lastAccessTime,
-		        @NonNull final FILETIME lastWriteTime,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final WString path,
+		        final FILETIME creationTime,
+		        final FILETIME lastAccessTime,
+		        final FILETIME lastWriteTime,
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.trace("SetFileTime for {}; creationTime = {}; lastAccessTime = {}; lastWriteTime = {}", normalizedPath, creationTime, lastAccessTime, lastWriteTime);
 
 			try {
@@ -448,10 +444,10 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class DeleteFile implements DokanyOperations.DeleteFile {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+				final WString path,
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.trace("DeleteFile: {}", normalizedPath);
 
 			try {
@@ -467,10 +463,10 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class DeleteDirectory implements DokanyOperations.DeleteDirectory {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final WString path,
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.trace("DeleteDirectory: {}", normalizedPath);
 
 			try {
@@ -486,13 +482,13 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class MoveFile implements DokanyOperations.MoveFile {
 		@Override
 		public long callback(
-		        @NonNull final WString oldPath,
-		        @NonNull final WString newPath,
+		        final WString oldPath,
+		        final WString newPath,
 		        final boolean replaceIfExisting,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val oldNormalizedPath = DokanyUtils.normalize(oldPath);
-			val newNormalizedPath = DokanyUtils.normalize(newPath);
+			String oldNormalizedPath = DokanyUtils.normalize(oldPath);
+			String newNormalizedPath = DokanyUtils.normalize(newPath);
 			log.debug("trace: {} to {}; replace existing? ", oldNormalizedPath, newNormalizedPath, replaceIfExisting);
 
 			try {
@@ -508,11 +504,11 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class SetEndOfFile implements DokanyOperations.SetEndOfFile {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
+		        final WString path,
 		        final long offset,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.trace("SetEndOfFile: {}", normalizedPath);
 
 			try {
@@ -527,11 +523,11 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class SetAllocationSize implements DokanyOperations.SetAllocationSize {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
+		        final WString path,
 		        final long length,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.trace("SetAllocationSize: {}", normalizedPath);
 
 			try {
@@ -546,12 +542,12 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class LockFile implements DokanyOperations.LockFile {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
+		        final WString path,
 		        final long offset,
 		        final long length,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.trace("LockFile: {}", normalizedPath);
 
 			try {
@@ -567,12 +563,12 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class UnlockFile implements DokanyOperations.UnlockFile {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
+		        final WString path,
 		        final long offset,
 		        final long length,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.trace("UnlockFile: {}", normalizedPath);
 			try {
 				fileSystem.unlock(normalizedPath, (int) offset, (int) length);
@@ -587,10 +583,10 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class GetDiskFreeSpace implements DokanyOperations.GetDiskFreeSpace {
 		@Override
 		public long callback(
-		        @NonNull final LongByReference rawFreeBytesAvailable,
-		        @NonNull final LongByReference rawTotalNumberOfBytes,
-		        @NonNull final LongByReference rawTotalNumberOfFreeBytes,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final LongByReference rawFreeBytesAvailable,
+		        final LongByReference rawTotalNumberOfBytes,
+		        final LongByReference rawTotalNumberOfFreeBytes,
+		        final DokanyFileInfo dokanyFileInfo) {
 
 			log.trace("GetDiskFreeSpace");
 			log.trace("rawFreeBytesAvailable: {}", rawFreeBytesAvailable.getValue());
@@ -613,14 +609,14 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class GetVolumeInformation implements DokanyOperations.GetVolumeInformation {
 		@Override
 		public long callback(
-		        @NonNull final Pointer volumeNameBuffer,
+		        final Pointer volumeNameBuffer,
 		        final int volumeNameSize,
-		        @NonNull final IntByReference rawVolumeSerialNumber,
-		        @NonNull final IntByReference rawMaximumComponentLength,
-		        @NonNull final IntByReference rawFileSystemFlags,
-		        @NonNull final Pointer rawFileSystemNameBuffer,
+		        final IntByReference rawVolumeSerialNumber,
+		        final IntByReference rawMaximumComponentLength,
+		        final IntByReference rawFileSystemFlags,
+				final Pointer rawFileSystemNameBuffer,
 		        final int rawFileSystemNameSize,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final DokanyFileInfo dokanyFileInfo) {
 
 			log.trace("GetVolumeInformation");
 
@@ -672,19 +668,19 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class GetFileSecurity implements DokanyOperations.GetFileSecurity {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
+		        final WString path,
 		        final int rawRequestedInformation,
-		        @NonNull final Pointer rawSecurityDescriptor,
+		        final Pointer rawSecurityDescriptor,
 		        final int rawSecurityDescriptorLength,
-		        @NonNull final IntByReference rawSecurityDescriptorLengthNeeded,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final IntByReference rawSecurityDescriptorLengthNeeded,
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.trace("SetFileSecurity: {}", normalizedPath);
 
 			try {
-				val out = new byte[rawSecurityDescriptorLength];
-				val expectedLength = fileSystem.getSecurity(normalizedPath, rawRequestedInformation, out);
+				byte[] out = new byte[rawSecurityDescriptorLength];
+				int expectedLength = fileSystem.getSecurity(normalizedPath, rawRequestedInformation, out);
 				rawSecurityDescriptor.write(0L, out, 0, rawSecurityDescriptorLength);
 				rawSecurityDescriptorLengthNeeded.setValue(expectedLength);
 
@@ -698,17 +694,17 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class SetFileSecurity implements DokanyOperations.SetFileSecurity {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
+		        final WString path,
 		        final int rawSecurityInformation,
-		        @NonNull final Pointer rawSecurityDescriptor,
+		        final Pointer rawSecurityDescriptor,
 		        final int rawSecurityDescriptorLength,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.trace("SetFileSecurity: {}", normalizedPath);
 
 			try {
-				val data = new byte[rawSecurityDescriptorLength];
+				byte[] data = new byte[rawSecurityDescriptorLength];
 				rawSecurityDescriptor.read(0L, data, 0, rawSecurityDescriptorLength);
 				fileSystem.setSecurity(normalizedPath, rawSecurityInformation, data);
 
@@ -722,15 +718,15 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	private final class FindStreams implements DokanyOperations.FindStreams {
 		@Override
 		public long callback(
-		        @NonNull final WString path,
-		        @NonNull final FillWin32FindStreamData rawFillFindData,
-		        @NonNull final DokanyFileInfo dokanyFileInfo) {
+		        final WString path,
+		        final FillWin32FindStreamData rawFillFindData,
+		        final DokanyFileInfo dokanyFileInfo) {
 
-			val normalizedPath = DokanyUtils.normalize(path);
+			String normalizedPath = DokanyUtils.normalize(path);
 			log.trace("FindStreams: {}", normalizedPath);
 
 			try {
-				val streams = fileSystem.findStreams(normalizedPath);
+				Set<Win32FindStreamData> streams = fileSystem.findStreams(normalizedPath);
 				log.debug("Found {} streams", streams.size());
 				streams.forEach(file -> {
 					rawFillFindData.callback(file, dokanyFileInfo);
@@ -760,17 +756,17 @@ final class DokanyOperationsProxy extends DokanyOperations {
 	}
 
 	static boolean isSkipFile(
-	        @NonNull final WString path) {
+	        final WString path) {
 		return isSkipFile(DokanyUtils.normalize(path));
 
 	}
 
 	static boolean isSkipFile(
-	        @NonNull final String normalizedPath) {
+	        final String normalizedPath) {
 
 		boolean toReturn = false;
 
-		val pathLowerCase = normalizedPath.toLowerCase();
+		String pathLowerCase = normalizedPath.toLowerCase();
 
 		if (pathLowerCase.endsWith("desktop.ini")
 		        || pathLowerCase.endsWith("autorun.inf")

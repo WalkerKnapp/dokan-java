@@ -8,10 +8,7 @@ import com.dokany.java.DokanyUtils;
 import com.dokany.java.constants.FileAttribute;
 import com.sun.jna.Structure;
 import com.sun.jna.platform.win32.WinBase.FILETIME;
-
-import lombok.NonNull;
-import lombok.ToString;
-import lombok.val;
+import com.sun.jna.platform.win32.WinNT;
 
 /**
  *
@@ -33,16 +30,14 @@ import lombok.val;
  *
  *
  */
-@ToString
 public class ByHandleFileInfo extends Structure implements Structure.ByReference {
 
 	AtomicLong counter = new AtomicLong();
 
 	// Used to store actual values (instead of high/low) which can be retrieved using getter method
-	@NonNull
-	String filePath;
-	long fileIndex;
-	long fileSize;
+	protected String filePath;
+	protected long fileIndex;
+	protected long fileSize;
 
 	/**
 	 * The high-order DWORD value of the file size, in bytes. This value is zero unless the file size is greater than MAXDWORD. The size of the file is equal to (nFileSizeHigh*
@@ -64,7 +59,6 @@ public class ByHandleFileInfo extends Structure implements Structure.ByReference
 	/**
 	 * A FILETIME structure that specifies when a file or directory was created. If the underlying file system does not support creation time, this member is zero.
 	 */
-	@NonNull
 	public FILETIME ftCreationTime;
 
 	/**
@@ -72,7 +66,6 @@ public class ByHandleFileInfo extends Structure implements Structure.ByReference
 	 * specifies when the directory is created. If the underlying file system does not support last access time, this member is zero. On the FAT file system, the specified date for
 	 * both files and directories is correct, but the time of day is always set to midnight.
 	 */
-	@NonNull
 	public FILETIME ftLastAccessTime;
 
 	/**
@@ -80,7 +73,6 @@ public class ByHandleFileInfo extends Structure implements Structure.ByReference
 	 * The date and time are not updated when file attributes or security descriptors are changed. For a directory, the structure specifies when the directory is created. If the
 	 * underlying file system does not support last write time, this member is zero.
 	 */
-	@NonNull
 	public FILETIME ftLastWriteTime;
 
 	/**
@@ -133,7 +125,7 @@ public class ByHandleFileInfo extends Structure implements Structure.ByReference
 	}
 
 	public void setTimes(final long creationTime, final long lastAccessTime, final long lastWriteTime) {
-		val now = DokanyUtils.getCurrentTime();
+		FILETIME now = DokanyUtils.getCurrentTime();
 
 		ftCreationTime = creationTime == 0 ? now : DokanyUtils.getTime(creationTime);
 		ftLastAccessTime = lastAccessTime == 0 ? now : DokanyUtils.getTime(lastAccessTime);
@@ -141,7 +133,7 @@ public class ByHandleFileInfo extends Structure implements Structure.ByReference
 	}
 
 	void setTimes(final FILETIME creationTime, final FILETIME lastAccessTime, final FILETIME lastWriteTime) {
-		val now = DokanyUtils.getCurrentTime();
+		FILETIME now = DokanyUtils.getCurrentTime();
 
 		ftCreationTime = Objects.isNull(creationTime) ? now : creationTime;
 		ftLastAccessTime = Objects.isNull(lastAccessTime) ? now : lastAccessTime;
@@ -173,10 +165,10 @@ public class ByHandleFileInfo extends Structure implements Structure.ByReference
 		setSize(sizeToSet, 0, 0);
 	}
 
-	final void setSize(final long size, final int sizeHigh, final int sizeLow) {
+	final protected void setSize(final long size, final int sizeHigh, final int sizeLow) {
 		fileSize = size;
 
-		val largeInt = DokanyUtils.getLargeInt(size, sizeHigh, sizeLow);
+		WinNT.LARGE_INTEGER largeInt = DokanyUtils.getLargeInt(size, sizeHigh, sizeLow);
 
 		nFileSizeHigh = ((size != 0) && (sizeHigh == 0)) ? largeInt.getHigh().intValue() : (int) size;
 		nFileSizeLow = ((size != 0) && (sizeLow == 0)) ? largeInt.getLow().intValue() : (int) size;
@@ -187,6 +179,10 @@ public class ByHandleFileInfo extends Structure implements Structure.ByReference
 		return fileSize;
 	}
 
+	public long getFileIndex() {
+		return fileIndex;
+	}
+
 	public void setIndex(final long indexToSet) {
 		if (indexToSet == 0) {
 			counter.getAndIncrement();
@@ -194,10 +190,10 @@ public class ByHandleFileInfo extends Structure implements Structure.ByReference
 		setIndex(indexToSet, 0, 0);
 	}
 
-	final void setIndex(final long index, final int indexHigh, final int indexLow) {
+	final protected void setIndex(final long index, final int indexHigh, final int indexLow) {
 		fileIndex = index;
 
-		val largeInt = DokanyUtils.getLargeInt(index, indexHigh, indexLow);
+		WinNT.LARGE_INTEGER largeInt = DokanyUtils.getLargeInt(index, indexHigh, indexLow);
 
 		nFileIndexHigh = ((index != 0) && (indexHigh == 0)) ? largeInt.getHigh().intValue() : (int) index;
 		nFileIndexLow = ((index != 0) && (indexLow == 0)) ? largeInt.getLow().intValue() : (int) index;
@@ -212,5 +208,25 @@ public class ByHandleFileInfo extends Structure implements Structure.ByReference
 		        "nFileSizeHigh", "nFileSizeLow",
 		        "dwNumberOfLinks",
 		        "nFileIndexHigh", "nFileIndexLow");
+	}
+
+	@Override
+	public String toString() {
+		return "ByHandleFileInfo{" +
+				"counter=" + counter +
+				", filePath='" + filePath + '\'' +
+				", fileIndex=" + fileIndex +
+				", fileSize=" + fileSize +
+				", nFileIndexHigh=" + nFileIndexHigh +
+				", nFileIndexLow=" + nFileIndexLow +
+				", dwFileAttributes=" + dwFileAttributes +
+				", ftCreationTime=" + ftCreationTime +
+				", ftLastAccessTime=" + ftLastAccessTime +
+				", ftLastWriteTime=" + ftLastWriteTime +
+				", nFileSizeHigh=" + nFileSizeHigh +
+				", nFileSizeLow=" + nFileSizeLow +
+				", dwVolumeSerialNumber=" + dwVolumeSerialNumber +
+				", dwNumberOfLinks=" + dwNumberOfLinks +
+				'}';
 	}
 }

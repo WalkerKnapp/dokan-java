@@ -8,13 +8,10 @@ import com.dokany.java.constants.MountOption;
 import com.sun.jna.Structure;
 import com.sun.jna.WString;
 
-import lombok.ToString;
-
 /**
  * Dokany mount options used to describe Dokany device behavior. This is the same structure as PDOKAN_OPTIONS (dokan.h) in the C++ version of Dokany.
  *
  */
-@ToString
 public class DeviceOptions extends Structure implements Structure.ByReference {
 
 	/**
@@ -107,5 +104,21 @@ public class DeviceOptions extends Structure implements Structure.ByReference {
 		        "Timeout",
 		        "AllocationUnitSize",
 		        "SectorSize");
+	}
+
+	@Override
+	public String toString() {
+		return "DeviceOptions{" +
+				"Version=" + Version +
+				", ThreadCount=" + ThreadCount +
+				", Options=" + Options +
+				", mountOptions=" + mountOptions +
+				", GlobalContext=" + GlobalContext +
+				", MountPoint=" + MountPoint +
+				", UNCName=" + UNCName +
+				", Timeout=" + Timeout +
+				", AllocationUnitSize=" + AllocationUnitSize +
+				", SectorSize=" + SectorSize +
+				'}';
 	}
 }

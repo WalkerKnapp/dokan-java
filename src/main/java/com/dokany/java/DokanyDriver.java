@@ -4,25 +4,20 @@ import com.dokany.java.constants.MountError;
 import com.dokany.java.structure.DeviceOptions;
 import com.sun.jna.WString;
 
-import lombok.AccessLevel;
-import lombok.NonNull;
-import lombok.val;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Main class to start and stop Dokany file system.
  *
  */
-@Slf4j
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public final class DokanyDriver {
-	@NonNull
-	DeviceOptions deviceOptions;
-	@NonNull
-	DokanyFileSystem fileSystem;
+	private static final Logger log = LoggerFactory.getLogger(DokanyDriver.class);
 
-	public DokanyDriver(@NonNull final DeviceOptions deviceOptions, @NonNull final DokanyFileSystem fileSystem) {
+	private final DeviceOptions deviceOptions;
+	private final DokanyFileSystem fileSystem;
+
+	public DokanyDriver(final DeviceOptions deviceOptions, final DokanyFileSystem fileSystem) {
 
 		this.deviceOptions = deviceOptions;
 		this.fileSystem = fileSystem;
@@ -57,7 +52,6 @@ public final class DokanyDriver {
 	 *
 	 * @return
 	 */
-	@NonNull
 	public DokanyFileSystem getFileSystem() {
 		return fileSystem;
 	}
@@ -67,7 +61,7 @@ public final class DokanyDriver {
 	 */
 	public void start() {
 		try {
-			val mountStatus = NativeMethods.DokanMain(deviceOptions, new DokanyOperationsProxy(fileSystem));
+			int mountStatus = NativeMethods.DokanMain(deviceOptions, new DokanyOperationsProxy(fileSystem));
 
 			if (mountStatus < 0) {
 				throw new IllegalStateException(MountError.fromInt(mountStatus).getDescription());
@@ -97,7 +91,7 @@ public final class DokanyDriver {
 	 *
 	 * @param mountPoint
 	 */
-	public static void stop(@NonNull final String mountPoint) {
+	public static void stop(final String mountPoint) {
 		log.info("Unmount and shutdown: {}", mountPoint);
 		NativeMethods.DokanUnmount(mountPoint.charAt(0));
 		NativeMethods.DokanRemoveMountPoint(new WString(mountPoint));

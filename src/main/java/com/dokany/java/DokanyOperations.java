@@ -17,8 +17,6 @@ import com.sun.jna.platform.win32.WinBase.WIN32_FIND_DATA;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.LongByReference;
 
-import lombok.NonNull;
-
 /**
  *
  * Dokany API callbacks interface. This is an internal class and should not used directly by code outside com.dokany.java.
@@ -69,55 +67,30 @@ public class DokanyOperations extends Structure {
 		        "FindStreams");
 	}
 
-	@NonNull
 	public ZwCreateFile ZwCreateFile;
-	@NonNull
 	public Cleanup Cleanup;
-	@NonNull
 	public CloseFile CloseFile;
-	@NonNull
 	public ReadFile ReadFile;
-	@NonNull
 	public WriteFile WriteFile;
-	@NonNull
 	public FlushFileBuffers FlushFileBuffers;
-	@NonNull
 	public GetFileInformation GetFileInformation;
-	@NonNull
 	public FindFiles FindFiles;
-	@NonNull
 	public FindFilesWithPattern FindFilesWithPattern;
-	@NonNull
 	public SetFileAttributes SetFileAttributes;
-	@NonNull
 	public SetFileTime SetFileTime;
-	@NonNull
 	public DeleteFile DeleteFile;
-	@NonNull
 	public DeleteDirectory DeleteDirectory;
-	@NonNull
 	public MoveFile MoveFile;
-	@NonNull
 	public SetEndOfFile SetEndOfFile;
-	@NonNull
 	public SetAllocationSize SetAllocationSize;
-	@NonNull
 	public LockFile LockFile;
-	@NonNull
 	public UnlockFile UnlockFile;
-	@NonNull
 	public GetDiskFreeSpace GetDiskFreeSpace;
-	@NonNull
 	public GetVolumeInformation GetVolumeInformation;
-	@NonNull
 	public Mounted Mounted;
-	@NonNull
 	public Unmounted Unmounted;
-	@NonNull
 	public GetFileSecurity GetFileSecurity;
-	@NonNull
 	public SetFileSecurity SetFileSecurity;
-	@NonNull
 	public FindStreams FindStreams;
 
 	/**
@@ -146,14 +119,14 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
-		        @NonNull WinBase.SECURITY_ATTRIBUTES securityContext,
+		        WString rawPath,
+		        WinBase.SECURITY_ATTRIBUTES securityContext,
 		        int rawDesiredAccess,
 		        int rawFileAttributes,
 		        int rawShareAccess,
 		        int rawCreateDisposition,
 		        int rawCreateOptions,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -171,8 +144,8 @@ public class DokanyOperations extends Structure {
 		 * @param dokanyFileInfo {@link DokanyFileInfo} with information about the file or directory.
 		 */
 		void callback(
-		        @NonNull WString rawPath,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        WString rawPath,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -191,8 +164,8 @@ public class DokanyOperations extends Structure {
 		 * @param dokanyFileInfo {@link DokanyFileInfo} with information about the file or directory.
 		 */
 		void callback(
-		        @NonNull WString rawPath,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        WString rawPath,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -212,12 +185,12 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
-		        @NonNull Pointer rawBuffer,
+		        WString rawPath,
+		        Pointer rawBuffer,
 		        int rawBufferLength,
-		        @NonNull IntByReference rawReadLength,
+		        IntByReference rawReadLength,
 		        long rawOffset,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -238,12 +211,12 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
-		        @NonNull Pointer rawBuffer,
+		        WString rawPath,
+		        Pointer rawBuffer,
 		        int rawNumberOfBytesToWrite,
-		        @NonNull IntByReference rawNumberOfBytesWritten,
+		        IntByReference rawNumberOfBytesWritten,
 		        long rawOffset,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        DokanyFileInfo dokanyFileInfo);
 
 	}
 
@@ -260,8 +233,8 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        WString rawPath,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -279,9 +252,9 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString fileName,
-		        @NonNull ByHandleFileInfo handleFileInfo,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        WString fileName,
+		        ByHandleFileInfo handleFileInfo,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -298,9 +271,9 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
-		        @NonNull FillWin32FindData rawFillFindData,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+				WString rawPath,
+		        FillWin32FindData rawFillFindData,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -319,10 +292,10 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString fileName,
-		        @NonNull WString searchPattern,
-		        @NonNull FillWin32FindData rawFillFindData,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        WString fileName,
+		        WString searchPattern,
+		        FillWin32FindData rawFillFindData,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -339,9 +312,9 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
+		        WString rawPath,
 		        int rawAttributes,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -360,11 +333,11 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
-		        @NonNull FILETIME rawCreationTime,
-		        @NonNull FILETIME rawLastAccessTime,
-		        @NonNull FILETIME rawLastWriteTime,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        WString rawPath,
+		        FILETIME rawCreationTime,
+		        FILETIME rawLastAccessTime,
+		        FILETIME rawLastWriteTime,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -391,8 +364,8 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        WString rawPath,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -411,8 +384,8 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        WString rawPath,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -430,10 +403,10 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
-		        @NonNull WString rawNewFileName,
+		        WString rawPath,
+		        WString rawNewFileName,
 		        boolean rawReplaceIfExisting,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -450,9 +423,9 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
+		        WString rawPath,
 		        long rawByteOffset,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -469,9 +442,9 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
+		        WString rawPath,
 		        long rawLength,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -489,10 +462,10 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
+		        WString rawPath,
 		        long rawByteOffset,
 		        long rawLength,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -510,10 +483,10 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
+		        WString rawPath,
 		        long rawByteOffset,
 		        long rawLength,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -536,10 +509,10 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull LongByReference freeBytesAvailable,
-		        @NonNull LongByReference totalNumberOfBytes,
-		        @NonNull LongByReference totalNumberOfFreeBytes,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        LongByReference freeBytesAvailable,
+		        LongByReference totalNumberOfBytes,
+		        LongByReference totalNumberOfFreeBytes,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -576,14 +549,14 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull Pointer rawVolumeNameBuffer,
+		        Pointer rawVolumeNameBuffer,
 		        int rawVolumeNameSize,
-		        @NonNull IntByReference rawVolumeSerialNumber,
-		        @NonNull IntByReference rawMaximumComponentLength,
-		        @NonNull IntByReference /* FileSystemFeatures */ rawFileSystemFlags,
-		        @NonNull Pointer rawFileSystemNameBuffer,
+		        IntByReference rawVolumeSerialNumber,
+		        IntByReference rawMaximumComponentLength,
+		        IntByReference /* FileSystemFeatures */ rawFileSystemFlags,
+		        Pointer rawFileSystemNameBuffer,
 		        int rawFileSystemNameSize,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -593,7 +566,7 @@ public class DokanyOperations extends Structure {
 	@FunctionalInterface
 	interface Mounted extends Callback {
 		long mounted(
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -603,7 +576,7 @@ public class DokanyOperations extends Structure {
 	@FunctionalInterface
 	interface Unmounted extends Callback {
 		long unmounted(
-		        @NonNull final DokanyFileInfo dokanyFileInfo);
+		        final DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -625,12 +598,12 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
+		        WString rawPath,
 		        int /* SecurityInformation */ rawSecurityInformation,
-		        @NonNull Pointer rawSecurityDescriptor,
+		        Pointer rawSecurityDescriptor,
 		        int rawSecurityDescriptorLength,
-		        @NonNull IntByReference rawSecurityDescriptorLengthNeeded,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        IntByReference rawSecurityDescriptorLengthNeeded,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -651,12 +624,12 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
+		        WString rawPath,
 		        int rawSecurityInformation,
 		        // @TODO: This is a pointer??
-		        @NonNull Pointer rawSecurityDescriptor,
+		        Pointer rawSecurityDescriptor,
 		        int rawSecurityDescriptorLength,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	@FunctionalInterface
@@ -667,8 +640,8 @@ public class DokanyOperations extends Structure {
 		 * @param dokanyFileInfo {@link DokanyFileInfo} with information about the file or directory.
 		 */
 		void fillWin32FindData(
-		        @NonNull WIN32_FIND_DATA rawFillFindData,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        WIN32_FIND_DATA rawFillFindData,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -685,9 +658,9 @@ public class DokanyOperations extends Structure {
 		 * @return {@link com.dokany.java.constants.NtStatus}
 		 */
 		long callback(
-		        @NonNull WString rawPath,
-		        @NonNull FillWin32FindStreamData rawFillFindData,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        WString rawPath,
+		        FillWin32FindStreamData rawFillFindData,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	/**
@@ -702,8 +675,8 @@ public class DokanyOperations extends Structure {
 		 * @param dokanyFileInfo {@link DokanyFileInfo} with information about the file or directory.
 		 */
 		void callback(
-		        @NonNull Win32FindStreamData rawFillFindData,
-		        @NonNull DokanyFileInfo dokanyFileInfo);
+		        Win32FindStreamData rawFillFindData,
+		        DokanyFileInfo dokanyFileInfo);
 	}
 
 	interface Win32FindStreamDataInterface {

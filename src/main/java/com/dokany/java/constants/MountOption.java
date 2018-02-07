@@ -3,13 +3,6 @@ package com.dokany.java.constants;
 import com.dokany.java.DokanyUtils;
 import com.dokany.java.structure.EnumIntegerSet;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-@RequiredArgsConstructor
 public enum MountOption implements EnumInteger {
 
 	DEBUG_MODE(1, "Enable ouput debug message"),
@@ -30,21 +23,31 @@ public enum MountOption implements EnumInteger {
 
 	FILELOCK_USER_MODE(256, "Enable Lockfile/Unlockfile operations. Otherwise Dokan will take care of it");
 
-	@Getter
-	int mask;
+	private final int mask;
 
-	@Getter
-	String description;
+	private final String description;
 
-	@Getter
-	boolean isReadonly;
+	private final boolean isReadonly;
 
-	private MountOption(final int i, final String desc) {
+	MountOption(final int i, final String desc) {
 		mask = i;
 		description = desc;
 
 		// TODO: is this proper logic?
 		isReadonly = (mask == 8);
+	}
+
+	@Override
+	public int getMask() {
+		return mask;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public boolean isReadonly() {
+		return isReadonly;
 	}
 
 	public static EnumIntegerSet<MountOption> fromInt(final int value) {

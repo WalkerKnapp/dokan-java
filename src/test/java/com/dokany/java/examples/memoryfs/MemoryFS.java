@@ -6,12 +6,11 @@ import java.io.DataOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.Date;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Matcher;
 
 import com.dokany.java.DokanyFileSystem;
 import com.dokany.java.Win32FindStreamData;
@@ -26,6 +25,10 @@ import com.dokany.java.structure.VolumeInformation;
 import com.sun.jna.platform.win32.WinBase.FILETIME;
 import com.sun.jna.platform.win32.WinBase.WIN32_FIND_DATA;
 
+import jetbrains.exodus.ArrayByteIterable;
+import jetbrains.exodus.ByteIterable;
+import jetbrains.exodus.bindings.IntegerBinding;
+import jetbrains.exodus.bindings.LongBinding;
 import jetbrains.exodus.bindings.StringBinding;
 import jetbrains.exodus.core.dataStructures.hash.HashSet;
 import jetbrains.exodus.env.Environment;
@@ -33,56 +36,52 @@ import jetbrains.exodus.env.Environments;
 import jetbrains.exodus.env.Store;
 import jetbrains.exodus.env.StoreConfig;
 import jetbrains.exodus.env.Transaction;
+import jetbrains.exodus.util.LightOutputStream;
 import jetbrains.exodus.vfs.File;
 import jetbrains.exodus.vfs.VfsInputStream;
 import jetbrains.exodus.vfs.VirtualFileSystem;
-import lombok.AccessLevel;
-import lombok.Cleanup;
-import lombok.NonNull;
-import lombok.val;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * In memory (virtual) filesystem backed by Xodus
  */
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-@Slf4j
 public class MemoryFS extends DokanyFileSystem {
+	private static final Logger log = LoggerFactory.getLogger(MemoryFS.class);
 
 	/**
 	 * Path matcher glob
 	 */
-	static String GLOB = "glob:";
-	static java.nio.file.FileSystem DEFAULT_FS = FileSystems.getDefault();
+	private static final String GLOB = "glob:";
+	private static final java.nio.file.FileSystem DEFAULT_FS = FileSystems.getDefault();
 
 	// VFS - virtual file store provided by xodus
-	Environment env;
-	VirtualFileSystem vfs;
-	Store infoStore;
+	private final Environment env;
+	private final VirtualFileSystem vfs;
+	private final Store infoStore;
 
 	public MemoryFS(
-	        @NonNull final DeviceOptions deviceOptions,
-	        @NonNull final VolumeInformation volumeInfo,
-	        @NonNull final FreeSpace freeSpace,
-	        @NonNull final Date rootCreationDate,
-	        @NonNull final String rootPath) throws IOException {
+	        final DeviceOptions deviceOptions,
+	        final VolumeInformation volumeInfo,
+	        final FreeSpace freeSpace,
+	        final Date rootCreationDate,
+	        final String rootPath) throws IOException {
 		super(deviceOptions, volumeInfo, freeSpace, rootCreationDate, rootPath);
 
 		// Try to create store location in temp directory
-		val fileStorePath = Files.createTempDirectory("dokany-java_");
+		Path fileStorePath = Files.createTempDirectory("dokany-java_");
 
 		// Init VFS
 		env = Environments.newInstance(fileStorePath.toString());
 		vfs = new VirtualFileSystem(env);
 
 		// File store name
-		val fileStoreName = "com.dokany.java.fileinfo";
+		String fileStoreName = "com.dokany.java.fileinfo";
 
 		// Create/open store and save in fileInfoStore
 		// must not be read only so that store can be created
-		infoStore = env.computeInTransaction((@NonNull final Transaction txn) -> env.openStore(fileStoreName, StoreConfig.WITHOUT_DUPLICATES, txn));
+		infoStore = env.computeInTransaction((final Transaction txn) -> env.openStore(fileStoreName, StoreConfig.WITHOUT_DUPLICATES, txn));
 
 		createSampleItems();
 	}
@@ -109,7 +108,7 @@ public class MemoryFS extends DokanyFileSystem {
 	 * @return true if path exists
 	 */
 	@Override
-	public boolean doesPathExist(@NonNull final String path) {
+	public boolean doesPathExist(final String path) {
 		return Objects.nonNull(getExistingFile(path));
 	}
 
@@ -119,10 +118,10 @@ public class MemoryFS extends DokanyFileSystem {
 	 * @param path
 	 * @return file or null if path does not exist
 	 */
-	public File getExistingFile(@NonNull final String path) {
+	public File getExistingFile(final String path) {
 		log.trace("getExistingFile: {}", path);
 		// will be null if openFile does not find it
-		return env.computeInReadonlyTransaction((@NonNull final Transaction txn) -> getExistingFile(path, txn));
+		return env.computeInReadonlyTransaction((final Transaction txn) -> getExistingFile(path, txn));
 	}
 
 	/**
@@ -131,7 +130,7 @@ public class MemoryFS extends DokanyFileSystem {
 	 * @param path
 	 * @return file or null if path does not exist
 	 */
-	private File getExistingFile(@NonNull final String path, @NonNull final Transaction txn) {
+	private File getExistingFile(final String path, final Transaction txn) {
 		return vfs.openFile(txn, path, false);
 	}
 
@@ -142,8 +141,8 @@ public class MemoryFS extends DokanyFileSystem {
 	 * @return file or FileNotFoundException
 	 * @throws FileNotFoundException
 	 */
-	private File getExistingFileWithException(@NonNull final String path, @NonNull final Transaction txn) throws FileNotFoundException {
-		val file = getExistingFile(path, txn);
+	private File getExistingFileWithException(final String path, final Transaction txn) throws FileNotFoundException {
+		File file = getExistingFile(path, txn);
 		if (Objects.isNull(file)) {
 			throw new FileNotFoundException("Could not find file for path: " + path);
 		}
@@ -174,16 +173,16 @@ public class MemoryFS extends DokanyFileSystem {
 	*/
 
 	@Override
-	public Set<WIN32_FIND_DATA> findFilesWithPattern(@NonNull final String pathToSearch, @NonNull final DokanyFileInfo dokanyFileInfo, @NonNull final String pattern) {
-		val files = new HashSet<WIN32_FIND_DATA>();
+	public Set<WIN32_FIND_DATA> findFilesWithPattern(final String pathToSearch, final DokanyFileInfo dokanyFileInfo, final String pattern) {
+		Set<WIN32_FIND_DATA> files = new HashSet<>();
 
 		log.debug("findFilesWithPattern memoryfs:   path  {};     pattern {}", pathToSearch, pattern);
 		// Only use if pattern is not null
-		val pathMatcher = DEFAULT_FS.getPathMatcher(GLOB + root + pattern);
+		PathMatcher pathMatcher = DEFAULT_FS.getPathMatcher(GLOB + root + pattern);
 
-		env.executeInReadonlyTransaction((@NonNull final Transaction txn) -> {
+		env.executeInReadonlyTransaction((final Transaction txn) -> {
 			vfs.getFiles(txn).forEach(file -> {
-				val currentPath = file.getPath();
+				String currentPath = file.getPath();
 				log.trace("getFiles path: {}", currentPath);
 
 				// Do not match pathToSearch or it will get listed in the directory
@@ -209,7 +208,7 @@ public class MemoryFS extends DokanyFileSystem {
 	 * Deletes a file.
 	 */
 	@Override
-	public void deleteFile(@NonNull final String path, final DokanyFileInfo dokanyFileInfo) throws IOException {
+	public void deleteFile(final String path, final DokanyFileInfo dokanyFileInfo) throws IOException {
 		delete(path);
 	}
 
@@ -217,7 +216,7 @@ public class MemoryFS extends DokanyFileSystem {
 	 * Deletes a directory.
 	 */
 	@Override
-	public void deleteDirectory(@NonNull final String path, final DokanyFileInfo dokanyFileInfo) throws IOException {
+	public void deleteDirectory(final String path, final DokanyFileInfo dokanyFileInfo) throws IOException {
 		delete(path);
 	}
 
@@ -226,8 +225,8 @@ public class MemoryFS extends DokanyFileSystem {
 	 *
 	 * @param path
 	 */
-	private void delete(@NonNull final String path) {
-		env.executeInTransaction((@NonNull final Transaction txn) -> {
+	private void delete(final String path) {
+		env.executeInTransaction((final Transaction txn) -> {
 			vfs.deleteFile(txn, path);
 		});
 	}
@@ -236,7 +235,7 @@ public class MemoryFS extends DokanyFileSystem {
 	 *
 	 */
 	@Override
-	public void move(@NonNull final String oldPath, @NonNull final String newPath, final boolean replaceIfExisting) throws IOException {
+	public void move(final String oldPath, final String newPath, final boolean replaceIfExisting) throws IOException {
 		throw new UnsupportedOperationException("Not yet implemented");
 
 		/*
@@ -253,7 +252,7 @@ public class MemoryFS extends DokanyFileSystem {
 	 * @return
 	 * @throws FileNotFoundException
 	 */
-	private FullFileInfo getNewInfo(@NonNull final File file, final EnumIntegerSet<FileAttribute> attributes) throws FileNotFoundException {
+	private FullFileInfo getNewInfo(final File file, final EnumIntegerSet<FileAttribute> attributes) throws FileNotFoundException {
 		return new FullFileInfo(file.getPath(), file.getDescriptor(), attributes, getVolumeInfo().getSerialNumber());
 	}
 
@@ -263,10 +262,10 @@ public class MemoryFS extends DokanyFileSystem {
 	 * @throws IOException
 	 */
 	@Override
-	public FullFileInfo getInfo(@NonNull final String path) throws IOException {
+	public FullFileInfo getInfo(final String path) throws IOException {
 		log.debug("getInfo for {}", path);
 
-		val result = env.computeInReadonlyTransaction((@NonNull final Transaction txn) -> {
+		FullFileInfo result = env.computeInReadonlyTransaction((final Transaction txn) -> {
 			FullFileInfo toReturn = null;
 			try {
 				toReturn = getInfo(path, txn);
@@ -287,16 +286,16 @@ public class MemoryFS extends DokanyFileSystem {
 	 *
 	 * @throws FileNotFoundException
 	 */
-	private FullFileInfo getInfo(@NonNull final String path, @NonNull final Transaction txn) throws FileNotFoundException {
+	private FullFileInfo getInfo(final String path, final Transaction txn) throws FileNotFoundException {
 		if (Objects.isNull(path)) {
 			throw new IllegalArgumentException("path cannot be null");
 		}
-		val pathKey = StringBinding.stringToEntry(path);
-		val iterable = infoStore.get(txn, pathKey);
+		ArrayByteIterable pathKey = StringBinding.stringToEntry(path);
+		ByteIterable iterable = infoStore.get(txn, pathKey);
 		if (Objects.isNull(iterable)) {
 			throw new FileNotFoundException("iterable was null and thus file info could not be created");
 		}
-		return new FullFileInfo(path, iterable);
+		return new XodusFileInfo(path, iterable);
 	}
 
 	/**
@@ -305,8 +304,8 @@ public class MemoryFS extends DokanyFileSystem {
 	 * @throws IOException
 	 */
 	@Override
-	public void createEmptyFile(@NonNull final String path, final long options, final EnumIntegerSet<FileAttribute> attributes) throws IOException {
-		final IOException error = env.computeInTransaction((@NonNull final Transaction txn) -> {
+	public void createEmptyFile(final String path, final long options, final EnumIntegerSet<FileAttribute> attributes) throws IOException {
+		final IOException error = env.computeInTransaction((final Transaction txn) -> {
 			IOException toReturn = null;
 			try {
 				createEmptyFile(path, options, attributes, txn);
@@ -326,10 +325,10 @@ public class MemoryFS extends DokanyFileSystem {
 	 *
 	 * @throws FileNotFoundException
 	 */
-	private void createEmptyFile(@NonNull final String path, final long options, final EnumIntegerSet<FileAttribute> attributes, @NonNull final Transaction txn)
+	private void createEmptyFile(final String path, final long options, final EnumIntegerSet<FileAttribute> attributes, final Transaction txn)
 	        throws FileNotFoundException {
-		val file = createFile(path, txn);
-		val info = getNewInfo(file, attributes);
+		File file = createFile(path, txn);
+		FullFileInfo info = getNewInfo(file, attributes);
 		setInfo(path, info, txn);
 	}
 
@@ -339,14 +338,14 @@ public class MemoryFS extends DokanyFileSystem {
 	 * @throws IOException
 	 */
 	@Override
-	public void createEmptyDirectory(@NonNull final String path, final long options, final EnumIntegerSet<FileAttribute> attributes) throws IOException {
+	public void createEmptyDirectory(final String path, final long options, final EnumIntegerSet<FileAttribute> attributes) throws IOException {
 		createEmptyFile(path, options, attributes);
 	}
 
 	/**
 	 * Calls {@link jetbrains.exodus.vfs.VirtualFileSystem#createFile(Transaction, String)}
 	 */
-	private File createFile(@NonNull final String path, @NonNull final Transaction txn) {
+	private File createFile(final String path, final Transaction txn) {
 		final String updatedPath;
 		if (!path.startsWith(root)) {
 			updatedPath = root + path;
@@ -360,7 +359,7 @@ public class MemoryFS extends DokanyFileSystem {
 	 * Reads file from VFS and stores into data array.
 	 */
 	@Override
-	public FileData read(@NonNull final String path, final int offset, final int readLength) throws IOException {
+	public FileData read(final String path, final int offset, final int readLength) throws IOException {
 		if (readLength < 1) {
 			throw new IOException("readLength cannot be empty");
 		}
@@ -369,18 +368,18 @@ public class MemoryFS extends DokanyFileSystem {
 			throw new FileNotFoundException("path cannot be null");
 		}
 
-		val fileData = env.computeInTransaction((@NonNull final Transaction txn) -> {
+		FileData fileData = env.computeInTransaction((final Transaction txn) -> {
 			FileData toReturn = null;
 
-			val file = getExistingFile(path, txn);
-			val fileSize = vfs.getFileLength(txn, file);
+			File file = getExistingFile(path, txn);
+			long fileSize = vfs.getFileLength(txn, file);
 
 			if (fileSize > 0) {
 				if (Objects.nonNull(file)) {
 					final VfsInputStream inputStream = vfs.readFile(txn, file);
 					try {
-						val data = new byte[readLength];
-						val numRead = inputStream.read(data, offset, Math.min(readLength, data.length - offset));
+						byte[] data = new byte[readLength];
+						int numRead = inputStream.read(data, offset, Math.min(readLength, data.length - offset));
 						toReturn = new FileData(data, numRead);
 					} catch (final IOException e) {
 						log.warn("Read fault on path {}", path, e);
@@ -409,7 +408,7 @@ public class MemoryFS extends DokanyFileSystem {
 	 * @param int
 	 * @param info
 	 */
-	private int writeAll(@NonNull final File file, final byte[] data, @NonNull final Transaction txn) throws IOException {
+	private int writeAll(final File file, final byte[] data, final Transaction txn) throws IOException {
 		return write(file, 0, data, data.length, null, txn);
 	}
 
@@ -423,15 +422,15 @@ public class MemoryFS extends DokanyFileSystem {
 	 * @param info
 	 */
 	@Override
-	public int write(@NonNull final String path, final int offset, final byte[] data, final int writeLength) throws IOException {
+	public int write(final String path, final int offset, final byte[] data, final int writeLength) throws IOException {
 		if (Objects.isNull(path)) {
 			throw new FileNotFoundException("Path was null");
 		}
 
-		val error = env.computeInTransaction((@NonNull final Transaction txn) -> {
+		IOException error = env.computeInTransaction((final Transaction txn) -> {
 			IOException toReturn = null;
 			try {
-				val file = getExistingFileWithException(path, txn);
+				File file = getExistingFileWithException(path, txn);
 				write(file, offset, data, writeLength, null, txn);
 			} catch (final IOException e) {
 				toReturn = e;
@@ -446,27 +445,27 @@ public class MemoryFS extends DokanyFileSystem {
 		return writeLength;
 	}
 
-	private int write(@NonNull final File file, final int offset, final byte[] data, final int writeLength, final FullFileInfo info, @NonNull final Transaction txn)
+	private int write(final File file, final int offset, final byte[] data, final int writeLength, final FullFileInfo info, final Transaction txn)
 	        throws IOException {
-		@Cleanup
-		final DataOutputStream output = new DataOutputStream(vfs.writeFile(txn, file));
-		output.write(data, offset, writeLength);
+		try(final DataOutputStream output = new DataOutputStream(vfs.writeFile(txn, file))) {
+			output.write(data, offset, writeLength);
 
-		// This has to go outside the try statement so the buffer is fully written/flushed
-		final long fileSize = vfs.getFileLength(txn, file);
-		log.debug("wrote file: {}", file.getPath());
+			// This has to go outside the try statement so the buffer is fully written/flushed
+			final long fileSize = vfs.getFileLength(txn, file);
+			log.debug("wrote file: {}", file.getPath());
 
-		FullFileInfo newInfo = info;
-		if (Objects.isNull(info)) {
-			// Figure out how to properly set attribute
-			val attributes = new EnumIntegerSet<>(FileAttribute.class);
-			attributes.add(FileAttribute.NORMAL);
-			newInfo = getNewInfo(file, attributes);
+			FullFileInfo newInfo = info;
+			if (Objects.isNull(info)) {
+				// Figure out how to properly set attribute
+				EnumIntegerSet<FileAttribute> attributes = new EnumIntegerSet<>(FileAttribute.class);
+				attributes.add(FileAttribute.NORMAL);
+				newInfo = getNewInfo(file, attributes);
 
-			newInfo.setCreationTime(file.getCreated());
-			newInfo.setSize(fileSize);
+				newInfo.setCreationTime(file.getCreated());
+				newInfo.setSize(fileSize);
+			}
+			setInfo(file.getPath(), newInfo, txn);
 		}
-		setInfo(file.getPath(), newInfo, txn);
 		return writeLength;
 	}
 
@@ -476,11 +475,41 @@ public class MemoryFS extends DokanyFileSystem {
 	 * @param path
 	 * @param info
 	 */
-	private void setInfo(@NonNull final String path, @NonNull final FullFileInfo info, @NonNull final Transaction txn) {
-		val pathKey = StringBinding.stringToEntry(path);
-		infoStore.put(txn, pathKey, info.toByteIterable());
+	private void setInfo(final String path, final FullFileInfo info, final Transaction txn) {
+		ArrayByteIterable pathKey = StringBinding.stringToEntry(path);
+		infoStore.put(txn, pathKey, toByteIterable(info));
 		log.debug("Stored info for {}", path);
 	}
+
+	public ArrayByteIterable toByteIterable(FullFileInfo info) {
+		LightOutputStream output = new LightOutputStream();
+
+		LongBinding.writeCompressed(output, info.getSize());
+		IntegerBinding.writeCompressed(output, info.nFileSizeHigh);
+		IntegerBinding.writeCompressed(output, info.nFileSizeLow);
+
+		LongBinding.writeCompressed(output, info.getFileIndex());
+		IntegerBinding.writeCompressed(output, info.nFileIndexHigh);
+		IntegerBinding.writeCompressed(output, info.nFileIndexLow);
+
+		IntegerBinding.writeCompressed(output, info.dwFileAttributes);
+
+		LongBinding.writeCompressed(output, info.ftCreationTime.toTime());
+		LongBinding.writeCompressed(output, info.ftLastAccessTime.toTime());
+		LongBinding.writeCompressed(output, info.ftLastWriteTime.toTime());
+
+		IntegerBinding.writeCompressed(output, info.dwNumberOfLinks);
+		IntegerBinding.writeCompressed(output, info.dwVolumeSerialNumber);
+
+		IntegerBinding.writeCompressed(output, info.getDwReserved0());
+		IntegerBinding.writeCompressed(output, info.getDwReserved1());
+
+		// do not store char[] for cFileName and cAlternateFileName since they do not have native bindings and it seems to be as efficient to recalculate every time via the String
+		// path than to covert to store as a StringBinding and then back again
+
+		return output.asArrayByteIterable();
+	}
+
 
 	/**
 	 * Stores FullFileInfo into VFS.
@@ -488,8 +517,8 @@ public class MemoryFS extends DokanyFileSystem {
 	 * @param path
 	 * @param info
 	 */
-	private void setInfo(@NonNull final String path, @NonNull final FullFileInfo info) {
-		env.executeInTransaction((@NonNull final Transaction txn) -> {
+	private void setInfo(final String path, final FullFileInfo info) {
+		env.executeInTransaction((final Transaction txn) -> {
 			setInfo(path, info, txn);
 		});
 	}
@@ -498,22 +527,22 @@ public class MemoryFS extends DokanyFileSystem {
 	/**
 	 * Sets attributes on path.
 	 */
-	public void setAttributes(@NonNull final String path, final EnumIntegerSet<FileAttribute> attributes) throws IOException {
+	public void setAttributes(final String path, final EnumIntegerSet<FileAttribute> attributes) throws IOException {
 		int attributeAsInt = FILE_ATTRIBUTE_NORMAL;
 		// Will be null if coming from findExisting method
 		if (Objects.nonNull(attributes)) {
 			attributeAsInt = attributes.toInt();
 		}
 
-		val info = getInfo(path);
+		FullFileInfo info = getInfo(path);
 		info.dwFileAttributes = attributeAsInt;
 		setInfo(path, info);
 	}
 
 	@Override
-	public void setTime(@NonNull final String path, @NonNull final FILETIME creation, @NonNull final FILETIME lastAccess, @NonNull final FILETIME lastModification)
+	public void setTime(final String path, final FILETIME creation, final FILETIME lastAccess, final FILETIME lastModification)
 	        throws IOException {
-		val info = getInfo(path);
+		FullFileInfo info = getInfo(path);
 		info.ftCreationTime = creation;
 		info.ftLastAccessTime = lastAccess;
 		info.ftLastWriteTime = lastModification;
@@ -521,29 +550,29 @@ public class MemoryFS extends DokanyFileSystem {
 	}
 
 	@Override
-	public void setSecurity(@NonNull final String path, final int kind, final byte[] data) {
+	public void setSecurity(final String path, final int kind, final byte[] data) {
 		throw new UnsupportedOperationException("Not yet implemented");
 	}
 
 	@Override
-	public int getSecurity(@NonNull final String path, final int kind, final byte[] out) throws IOException {
+	public int getSecurity(final String path, final int kind, final byte[] out) throws IOException {
 		throw new UnsupportedOperationException("Not yet implemented");
 		// return 0;
 	}
 
 	@Override
-	public void unlock(@NonNull final String path, final int offset, final int length) {
+	public void unlock(final String path, final int offset, final int length) {
 		throw new UnsupportedOperationException("Unlocking not implemented.");
 	}
 
 	@Override
-	public void lock(@NonNull final String path, final int offset, final int length) {
+	public void lock(final String path, final int offset, final int length) {
 		throw new UnsupportedOperationException("Locking not implemented.");
 	}
 
 	@Override
 	// TODO: finish implementation
-	public long truncate(@NonNull final String path) throws IOException {
+	public long truncate(final String path) throws IOException {
 		// final Node parent = item.getParent();
 
 		/*
@@ -556,27 +585,27 @@ public class MemoryFS extends DokanyFileSystem {
 	}
 
 	@Override
-	public void setAllocationSize(@NonNull final String path, final int length) {
+	public void setAllocationSize(final String path, final int length) {
 		throw new UnsupportedOperationException("Not yet implemented");
 	}
 
 	@Override
-	public void setEndOfFile(@NonNull final String path, final int offset) {
+	public void setEndOfFile(final String path, final int offset) {
 		throw new UnsupportedOperationException("Not yet implemented");
 	}
 
 	@Override
-	public void flushFileBuffers(@NonNull final String path) {
+	public void flushFileBuffers(final String path) {
 		throw new UnsupportedOperationException("Not yet implemented");
 	}
 
 	@Override
-	public void cleanup(@NonNull final String path, final DokanyFileInfo dokanyFileInfo) {
+	public void cleanup(final String path, final DokanyFileInfo dokanyFileInfo) {
 		throw new UnsupportedOperationException("Not yet implemented");
 	}
 
 	@Override
-	public void close(@NonNull final String path, final DokanyFileInfo dokanyFileInfo) {
+	public void close(final String path, final DokanyFileInfo dokanyFileInfo) {
 		throw new UnsupportedOperationException("Not yet implemented");
 	}
 
@@ -588,14 +617,14 @@ public class MemoryFS extends DokanyFileSystem {
 	 * @throws IOException
 	 */
 	private void createSampleItems() throws IOException {
-		val error = env.computeInTransaction((@NonNull final Transaction txn) -> {
+		IOException error = env.computeInTransaction((final Transaction txn) -> {
 			IOException toReturn = null;
 			try {
 				// Root - must be created
 				File file = createFile(root, txn);
-				val attributes = new EnumIntegerSet<>(FileAttribute.class);
+				EnumIntegerSet<FileAttribute> attributes = new EnumIntegerSet<>(FileAttribute.class);
 				attributes.add(FileAttribute.DEVICE);
-				val info = new FullFileInfo(root, file.getDescriptor(), attributes,
+				FullFileInfo info = new FullFileInfo(root, file.getDescriptor(), attributes,
 				        volumeInfo.getSerialNumber());
 				info.setSize(freeSpace.getTotalBytes());
 				setInfo(root, info, txn);

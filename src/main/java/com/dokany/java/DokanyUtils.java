@@ -11,8 +11,6 @@ import java.nio.file.attribute.FileTime;
 import java.util.Date;
 import java.util.Objects;
 
-import org.apache.commons.io.FilenameUtils;
-
 import com.dokany.java.constants.EnumInteger;
 import com.dokany.java.constants.ErrorCode;
 import com.dokany.java.constants.NtStatus;
@@ -22,26 +20,26 @@ import com.sun.jna.WString;
 import com.sun.jna.platform.win32.WinBase.FILETIME;
 import com.sun.jna.platform.win32.WinNT.LARGE_INTEGER;
 
-import lombok.NonNull;
-import lombok.val;
-import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * Utilities to do various operations.
  *
  */
-@UtilityClass
-@Slf4j
 public class DokanyUtils {
+    private static final Logger log = LoggerFactory.getLogger(DokanyUtils.class);
+
+	public static String UNIX_SEPARATOR = "/";
+
 	/**
 	 * Uses *nix separator
 	 *
 	 * @param str
 	 * @return
 	 */
-	public String trimTailSeparator(@NonNull final String str) {
+	public static String trimTailSeparator(final String str) {
 		return str.endsWith(UNIX_SEPARATOR) ? str.substring(0, str.length() - 1) : str;
 	}
 
@@ -51,8 +49,7 @@ public class DokanyUtils {
 	 * @param str
 	 * @return
 	 */
-	@NonNull
-	public String trimFrontSeparator(@NonNull final String str) {
+	public static String trimFrontSeparator(final String str) {
 		return str.startsWith(UNIX_SEPARATOR) ? str.substring(1, str.length()) : str;
 	}
 
@@ -62,7 +59,7 @@ public class DokanyUtils {
 	 * @param path
 	 * @return
 	 */
-	public Path getPath(@NonNull final String path) {
+	public static Path getPath(final String path) {
 		return Paths.get(path);
 	}
 
@@ -72,11 +69,9 @@ public class DokanyUtils {
 	 * @param path
 	 * @return
 	 */
-	public File toFile(@NonNull final String path) {
+	public static File toFile(final String path) {
 		return getPath(path).toFile();
 	}
-
-	public String UNIX_SEPARATOR = FilenameUtils.separatorsToUnix(File.separator);
 
 	/**
 	 * Will add tail UNIX_SEPARATOR if file is a directory and tail separator is not already present
@@ -84,8 +79,8 @@ public class DokanyUtils {
 	 * @param path
 	 * @return
 	 */
-	public String normalize(@NonNull final String path) {
-		String normalizedPath = FilenameUtils.normalize(path, true);
+	public static String normalize(final String path) {
+		String normalizedPath = Paths.get(path).normalize().toString();
 
 		if (new File(normalizedPath).isDirectory()) {
 			final int lastSeparator = indexOfLastSeparator(normalizedPath);
@@ -97,35 +92,30 @@ public class DokanyUtils {
 		return normalizedPath;
 	}
 
-	public int indexOfLastSeparator(@NonNull final String normalizedPath) {
-		return FilenameUtils.indexOfLastSeparator(normalizedPath);
+	public static int indexOfLastSeparator(final String normalizedPath) {
+		return normalizedPath.lastIndexOf(UNIX_SEPARATOR);
 	}
 
-	// TODO: can this return null?
-	public String normalize(@NonNull final WString path) {
+	public static String normalize(final WString path) {
 		return normalize(path.toString());
 	}
 
-	// TODO: can this return null?
-	public String normalize(@NonNull final Path path) {
+	public static String normalize(final Path path) {
 		return normalize(path.toString());
 	}
 
-	// TODO: can this return null?
-	String getFileName(@NonNull final String fileName) {
-		return FilenameUtils.getBaseName(fileName);
+	static String getFileName(final String fileName) {
+		return fileName.substring(0, fileName.lastIndexOf('.'));
 	}
 
-	// TODO: can this return null?
-	String getExtension(@NonNull final String fileName) {
-		return FilenameUtils.getExtension(fileName);
+	static String getExtension(final String fileName) {
+        return fileName.substring(fileName.lastIndexOf('.'), fileName.length());
 	}
 
-	// TODO: can this return null?
-	public String toShortName(@NonNull final Path path) {
-		val pathAsStr = path.toString();
+	public static String toShortName(final Path path) {
+		String pathAsStr = path.toString();
 
-		val base = trimStrToSize(getFileName(pathAsStr), 8);
+		String base = trimStrToSize(getFileName(pathAsStr), 8);
 		log.trace("base: {}", base);
 
 		String ext = trimStrToSize(getExtension(pathAsStr), 3);
@@ -136,16 +126,15 @@ public class DokanyUtils {
 		return base + ext;
 	}
 
-	@NonNull
-	public String trimStrToSize(@NonNull final String str, final int len) {
+	public static String trimStrToSize(final String str, final int len) {
 		return str.substring(0, Math.min(str.length(), len));
 	}
 
-	long exceptionToErrorCode(@NonNull final Throwable t) {
+	static long exceptionToErrorCode(final Throwable t) {
 		return exceptionToErrorCode(t, NtStatus.UNSUCCESSFUL.getMask());
 	}
 
-	long exceptionToErrorCode(@NonNull final Throwable t, final long defaultCode) {
+	static long exceptionToErrorCode(final Throwable t, final long defaultCode) {
 		log.warn(t.getMessage(), t);
 
 		if (t instanceof DokanyException) {
@@ -161,23 +150,23 @@ public class DokanyUtils {
 		return defaultCode;
 	}
 
-	public FileTime toFileTime(@NonNull final FILETIME time) {
+	public static FileTime toNioFileTime(final FILETIME time) {
 		return FileTime.from(time.toDate().toInstant());
 	}
 
-	public FILETIME toFILETIME(@NonNull final FileTime time) {
+	public static FILETIME toJnaFileTime(final FileTime time) {
 		return getTime(time.toMillis());
 	}
 
-	public FILETIME getTime(@NonNull final Date date) {
+	public static FILETIME getTime(final Date date) {
 		return new FILETIME(date);
 	}
 
-	public FILETIME getTime(final long time) {
+	public static FILETIME getTime(final long time) {
 		return getTime(new Date(time));
 	}
 
-	public FILETIME getCurrentTime() {
+	public static FILETIME getCurrentTime() {
 		return getTime(new Date());
 	}
 
@@ -188,7 +177,7 @@ public class DokanyUtils {
 	 * @param low
 	 * @return
 	 */
-	public LARGE_INTEGER getLargeInt(final long val, final int high, final int low) {
+	public static LARGE_INTEGER getLargeInt(final long val, final int high, final int low) {
 		LARGE_INTEGER largeInt = null;
 		if ((val != 0) && ((high == 0) || (low == 0))) {
 			largeInt = new LARGE_INTEGER(val);
@@ -201,7 +190,7 @@ public class DokanyUtils {
 	 * @param path
 	 * @return
 	 */
-	public BasicFileAttributeView getBasicAttributes(@NonNull final String path) {
+	public static BasicFileAttributeView getBasicAttributes(final String path) {
 		return getBasicAttributes(getPath(path));
 	}
 
@@ -210,7 +199,7 @@ public class DokanyUtils {
 	 * @param path
 	 * @return
 	 */
-	public BasicFileAttributeView getBasicAttributes(@NonNull final Path path) {
+	public static BasicFileAttributeView getBasicAttributes(final Path path) {
 		return Files.getFileAttributeView(path, BasicFileAttributeView.class);
 	}
 
@@ -221,12 +210,11 @@ public class DokanyUtils {
 	 * @param allEnumValues
 	 * @return
 	 */
-	@NonNull
-	public <T extends Enum<T>> EnumIntegerSet<T> enumSetFromInt(final int value, final T[] allEnumValues) {
-		val elements = new EnumIntegerSet<>(allEnumValues[0].getDeclaringClass());
+	public static <T extends Enum<T>> EnumIntegerSet<T> enumSetFromInt(final int value, final T[] allEnumValues) {
+		EnumIntegerSet<T> elements = new EnumIntegerSet<>(allEnumValues[0].getDeclaringClass());
 		int remainingValues = value;
-		for (val current : allEnumValues) {
-			val mask = ((EnumInteger) current).getMask();
+		for (T current : allEnumValues) {
+			int mask = ((EnumInteger) current).getMask();
 
 			if ((remainingValues & mask) == mask) {
 				elements.add(current);
@@ -236,8 +224,7 @@ public class DokanyUtils {
 		return elements;
 	}
 
-	@NonNull
-	public <T extends EnumInteger> T enumFromInt(final int value, @NonNull final T[] enumValues) {
+	public static <T extends EnumInteger> T enumFromInt(final int value, final T[] enumValues) {
 		for (final T current : enumValues) {
 			if ((value & current.getMask()) == current.getMask()) {
 				return current;
@@ -252,8 +239,8 @@ public class DokanyUtils {
 	 * @param fileOrDirectory
 	 * @param dokanyFileInfo
 	 */
-	public void setDeleteStatus(@NonNull final File fileOrDirectory, @NonNull final DokanyFileInfo dokanyFileInfo) {
-		val canDelete = fileOrDirectory.renameTo(fileOrDirectory);
+	public static void setDeleteStatus(final File fileOrDirectory, final DokanyFileInfo dokanyFileInfo) {
+		boolean canDelete = fileOrDirectory.renameTo(fileOrDirectory);
 
 		if (canDelete) {
 			dokanyFileInfo.DeleteOnClose = 1;
@@ -266,7 +253,7 @@ public class DokanyUtils {
 	 * @param wStr .
 	 * @return if wStr is null, method will return null
 	 */
-	public String wStrToStr(final WString wStr) {
+	public static String wStrToStr(final WString wStr) {
 		return Objects.nonNull(wStr) ? wStr.toString() : null;
 	}
 }

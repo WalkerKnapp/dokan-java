@@ -3,11 +3,6 @@ package com.dokany.java.constants;
 import com.dokany.java.DokanyUtils;
 import com.sun.jna.platform.win32.WinNT;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.experimental.FieldDefaults;
-
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public enum CreationDisposition implements EnumInteger {
 
     /*-
@@ -27,24 +22,34 @@ public enum CreationDisposition implements EnumInteger {
 	OPEN_ALWAYS(WinNT.OPEN_ALWAYS, "Open Always"),
 	TRUNCATE_EXISTING(WinNT.TRUNCATE_EXISTING, "Truncate Existing");
 
-	@Getter
-	int mask;
+	private final int mask;
 
-	@Getter
-	String description;
+	private final String description;
 
-	@Getter
-	boolean isReadonly;
+	private final boolean readonly;
 
 	private CreationDisposition(final int i, final String desc) {
 		mask = i;
 		description = desc;
 
 		// TODO: Is this logic correct?
-		isReadonly = ((mask == 3) || (mask == 4));
+		readonly = ((mask == 3) || (mask == 4));
 	}
 
 	public static CreationDisposition fromInt(final int value) {
 		return DokanyUtils.enumFromInt(value, values());
+	}
+
+	@Override
+	public int getMask() {
+		return mask;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public boolean isReadonly() {
+		return readonly;
 	}
 }

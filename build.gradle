@@ -1,65 +1,25 @@
 plugins {
-  id 'application'
-  id 'eclipse'
-  id 'maven-publish'
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '3.3'
-}
-
-repositories {
-  jcenter()
-  
-  maven { 
-  	url "https://oss.sonatype.org/content/repositories/snapshots"
-  }
+    id 'java-library'
+    id 'eclipse'
+    id 'maven-publish'
 }
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
+version = '1.1.0'
+
+group = "com.dokany.dokan-java"
+
+repositories {
+    jcenter()
+}
+
 dependencies {
-  compileOnly 'org.projectlombok:lombok:1.16.16'
-  compile 'commons-io:commons-io:2.5'
-  compile 'org.slf4j:slf4j-api:1.7.25'
-  compile 'ch.qos.logback:logback-classic:1.2.3'
-  compile 'net.java.dev.jna:jna:4.4.0'
-  compile 'net.java.dev.jna:jna-platform:4.4.0'
-  compile 'org.jetbrains.xodus:xodus-vfs:1.0.4'
-}
-
-eclipse {
-  project.natures 'org.springsource.ide.eclipse.gradle.core.nature'
-}
-
-// TODO: change this back to true when documentation is added
-javadoc.failOnError = false
-
-mainClassName = "com.dokany.java.examples.mirrorfs.MountMirrorFS"
-
-jar {
-    doFirst {
-        manifest {
-                attributes 'Main-Class': 'com.dokany.java.examples.mirrorfs.MountMirrorFS'
-            if (!configurations.runtime.isEmpty()) {
-                attributes('Class-Path': configurations.runtime.collect{it.name}.join(' '))
-            }
-        }
-    }
-}
-
-task copyToLib(type: Copy) {
-    into "$buildDir/output/lib"
-    from configurations.runtime
-}
-
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from javadoc
-}
-
-task sourcesJar(type: Jar) {
-    classifier = 'sources'
-    from sourceSets.main.allSource
+    compile 'org.slf4j:slf4j-api:1.7.25'
+    compile 'net.java.dev.jna:jna:4.4.0'
+    compile 'net.java.dev.jna:jna-platform:4.4.0'
+    testCompile 'ch.qos.logback:logback-classic:1.2.3'
+    testCompile 'org.jetbrains.xodus:xodus-vfs:1.0.4'
+    testCompile 'commons-io:commons-io:2.5'
 }

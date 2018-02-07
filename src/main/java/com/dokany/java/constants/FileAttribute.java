@@ -4,18 +4,11 @@ import com.dokany.java.DokanyUtils;
 import com.dokany.java.structure.EnumIntegerSet;
 import com.sun.jna.platform.win32.WinNT;
 
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-
 /**
  *
  * @see {@linkplain https://msdn.microsoft.com/en-us/library/gg258117(v=vs.85).aspx}
  *
  */
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-@RequiredArgsConstructor
 public enum FileAttribute implements EnumInteger {
 
 	ARCHIVE(WinNT.FILE_ATTRIBUTE_ARCHIVE),
@@ -52,8 +45,16 @@ public enum FileAttribute implements EnumInteger {
 
 	VIRTUAL(WinNT.FILE_ATTRIBUTE_VIRTUAL);
 
-	@Getter
-	int mask;
+	private final int mask;
+
+	FileAttribute(int mask){
+		this.mask = mask;
+	}
+
+	@Override
+	public int getMask() {
+		return mask;
+	}
 
 	public static EnumIntegerSet<FileAttribute> fromInt(final int value) {
 		return DokanyUtils.enumSetFromInt(value, values());

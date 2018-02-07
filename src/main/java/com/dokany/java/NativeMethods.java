@@ -6,21 +6,13 @@ import com.sun.jna.Native;
 import com.sun.jna.WString;
 import com.sun.jna.ptr.IntByReference;
 
-import lombok.AccessLevel;
-import lombok.NonNull;
-import lombok.experimental.FieldDefaults;
-import lombok.experimental.UtilityClass;
-import lombok.extern.slf4j.Slf4j;
-
 /**
  * Native API to the kernel Dokany driver. This is an internal class and should not used directly by code outside com.dokany.java.
  *
  */
-@Slf4j
-@UtilityClass
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 class NativeMethods {
-	String DOKAN_DLL = "dokan1";
+
+	private static final String DOKAN_DLL = "dokan1";
 
 	static {
 		Native.register(DOKAN_DLL);
@@ -33,21 +25,21 @@ class NativeMethods {
 	 * @param operations Instance of {@link com.dokany.java.DokanyOperations} that will be called for each request made by the kernel.
 	 * @return {@link com.dokany.java.constants.MountError}.
 	 */
-	native int DokanMain(@NonNull DeviceOptions options, @NonNull DokanyOperations operations);
+	static native int DokanMain(DeviceOptions options, DokanyOperations operations);
 
 	/**
 	 * Get the version of Dokan.
 	 *
 	 * @return The version number without the dots.
 	 */
-	native long DokanVersion();
+	static native long DokanVersion();
 
 	/**
 	 * Get the version of the Dokany driver.
 	 *
 	 * @return The version number without the dots.
 	 */
-	native long DokanDriverVersion();
+	static native long DokanDriverVersion();
 
 	/**
 	 * Unmount a Dokany device from a driver letter.
@@ -55,7 +47,7 @@ class NativeMethods {
 	 * @param driveLetter Driver letter to unmount.
 	 * @return True if device was unmounted or false (in case of failure or device not found).
 	 */
-	native boolean DokanUnmount(char driveLetter);
+	static native boolean DokanUnmount(char driveLetter);
 
 	/**
 	 * Unmount a Dokany device from a mount point
@@ -69,7 +61,7 @@ class NativeMethods {
 	 *            </ul>
 	 * @return if successfully unmounted mount point or not.
 	 */
-	native boolean DokanRemoveMountPoint(WString mountPoint);
+	static native boolean DokanRemoveMountPoint(WString mountPoint);
 
 	/**
 	 * Extends the time out of the current IO operation in driver.
@@ -78,7 +70,7 @@ class NativeMethods {
 	 * @param dokanyFileInfo {@link com.dokany.java.structure.DokanyFileInfo} of the operation to extend.
 	 * @return if the operation was successful or not.
 	 */
-	native boolean DokanResetTimeout(long timeout, @NonNull DokanyFileInfo dokanyFileInfo);
+	static native boolean DokanResetTimeout(long timeout, DokanyFileInfo dokanyFileInfo);
 
 	/**
 	 * Get the handle to Access Token.
@@ -86,7 +78,7 @@ class NativeMethods {
 	 * @param rawFileInfo {@link com.dokany.java.structure.DokanyFileInfo} of the operation.
 	 * @return A handle to the account token for the user on whose behalf the code is running.
 	 */
-	native IntByReference DokanOpenRequestorToken(@NonNull DokanyFileInfo dokanyFileInfo);
+	static native IntByReference DokanOpenRequestorToken(DokanyFileInfo dokanyFileInfo);
 
 	/**
 	 * Convert {@link com.dokany.java.DokanyOperations.ZwCreateFile} parameters to CreateFile parameters.
@@ -97,7 +89,7 @@ class NativeMethods {
 	 * @param outFileAttributesAndFlags
 	 * @param outCreationDisposition
 	 */
-	native void DokanMapKernelToUserCreateFileFlags(
+	static native void DokanMapKernelToUserCreateFileFlags(
 	        long fileAttributes,
 	        long createOptions,
 	        long createDisposition,
@@ -112,7 +104,7 @@ class NativeMethods {
 	 * @see {@linkplain https://msdn.microsoft.com/windows/hardware/drivers/ifs/access-mask}
 	 */
 	// TODO: change return type and method parameter type to FileAccess
-	native long DokanMapStandardToGenericAccess(long desiredAccess);
+	static native long DokanMapStandardToGenericAccess(long desiredAccess);
 
 	/**
 	 * Checks whether Name can match Expression.
@@ -122,7 +114,7 @@ class NativeMethods {
 	 * @param ignoreCase - Case sensitive or not
 	 * @return result if name matches the expression
 	 */
-	native boolean DokanIsNameInExpression(@NonNull String expression, String name, boolean ignoreCase);
+	static native boolean DokanIsNameInExpression(String expression, String name, boolean ignoreCase);
 
 	/**
 	 *
@@ -131,26 +123,26 @@ class NativeMethods {
 	 * @param serviceFullPath
 	 * @return
 	 */
-	native boolean DokanServiceInstall(@NonNull String serviceName, int serviceType, @NonNull String serviceFullPath);
+	static native boolean DokanServiceInstall(String serviceName, int serviceType, String serviceFullPath);
 
 	/**
 	 *
 	 * @param serviceName
 	 * @return
 	 */
-	native boolean DokanServiceDelete(@NonNull String serviceName);
+	static native boolean DokanServiceDelete(String serviceName);
 
 	/**
 	 *
 	 * @return
 	 */
-	native boolean DokanNetworkProviderInstall();
+	static native boolean DokanNetworkProviderInstall();
 
 	/**
 	 *
 	 * @return
 	 */
-	native boolean DokanNetworkProviderUninstall();
+	static native boolean DokanNetworkProviderUninstall();
 
 	/**
 	 * Determine if Dokany debug mode is enabled.
@@ -158,21 +150,21 @@ class NativeMethods {
 	 * @param mode
 	 * @return true if Dokany debug mode is enabled
 	 */
-	native boolean DokanSetDebugMode(int mode);
+	static native boolean DokanSetDebugMode(int mode);
 
 	/**
 	 * Enable or disable standard error output for Dokany.
 	 *
 	 * @param status
 	 */
-	native void DokanUseStdErr(boolean status);
+	static native void DokanUseStdErr(boolean status);
 
 	/**
 	 * Enable or disable Dokany debug mode.
 	 *
 	 * @param status
 	 */
-	native void DokanDebugMode(boolean status);
+	static native void DokanDebugMode(boolean status);
 
 	/**
 	 * Get active Dokany mount points.
@@ -184,7 +176,7 @@ class NativeMethods {
 	 * @return List retrieved or not.
 	 */
 	// TODO: Does this have proper params?
-	native boolean DokanGetMountPointList(long fileAttributes, long length, boolean uncOnly, long nbRead);
+	static native boolean DokanGetMountPointList(long fileAttributes, long length, boolean uncOnly, long nbRead);
 
 	/**
 	 * Convert Win32 error to NtStatus
@@ -195,5 +187,5 @@ class NativeMethods {
 	 * @return NtStatus associated to the error
 	 */
 	// TODO: Switch to NtStatus return type
-	native long DokanNtStatusFromWin32(int error);
+	static native long DokanNtStatusFromWin32(int error);
 }

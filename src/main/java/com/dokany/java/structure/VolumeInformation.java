@@ -2,21 +2,13 @@ package com.dokany.java.structure;
 
 import com.dokany.java.constants.FileSystemFeature;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Value;
-import lombok.experimental.FieldDefaults;
-
-@Value
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-@AllArgsConstructor
 public class VolumeInformation {
 
-	int maxComponentLength;
-	String name;
-	int serialNumber;
-	String fileSystemName;
-	EnumIntegerSet<FileSystemFeature> fileSystemFeatures;
+	private final int maxComponentLength;
+	private final String name;
+	private final int serialNumber;
+	private final String fileSystemName;
+	private final EnumIntegerSet<FileSystemFeature> fileSystemFeatures;
 
 	public static final int DEFAULT_MAX_COMPONENT_LENGTH = 256;
 	public static final int DEFAULT_SERIAL_NUMBER = 0x12345678;
@@ -26,6 +18,14 @@ public class VolumeInformation {
 
 	static {
 		DEFAULT_FS_FEATURES.add(FileSystemFeature.CASE_PRESERVED_NAMES);
+	}
+
+	public VolumeInformation(int maxComponentLength, String name, int serialNumber, String fileSystemName, EnumIntegerSet<FileSystemFeature> fileSystemFeatures){
+		this.maxComponentLength = maxComponentLength;
+		this.name = name;
+		this.serialNumber = serialNumber;
+		this.fileSystemName = fileSystemName;
+		this.fileSystemFeatures = fileSystemFeatures;
 	}
 
 	/**
@@ -44,5 +44,25 @@ public class VolumeInformation {
 	 */
 	public VolumeInformation() {
 		this(DEFAULT_MAX_COMPONENT_LENGTH, DEFAULT_VOLUME_NAME, DEFAULT_SERIAL_NUMBER, DEFAULT_FS_NAME, DEFAULT_FS_FEATURES);
+	}
+
+	public int getMaxComponentLength() {
+		return maxComponentLength;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public int getSerialNumber() {
+		return serialNumber;
+	}
+
+	public String getFileSystemName() {
+		return fileSystemName;
+	}
+
+	public EnumIntegerSet<FileSystemFeature> getFileSystemFeatures() {
+		return fileSystemFeatures;
 	}
 }

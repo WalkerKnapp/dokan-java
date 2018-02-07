@@ -3,10 +3,8 @@ package com.dokany.java.structure;
 import java.util.Arrays;
 import java.util.List;
 
+import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
-
-import lombok.RequiredArgsConstructor;
-import lombok.ToString;
 
 /**
  * From dokan.h
@@ -14,8 +12,6 @@ import lombok.ToString;
  * @see {@link https://github.com/dokan-dev/dokany/blob/master/dokan/dokan.h}
  *
  */
-@ToString
-@RequiredArgsConstructor
 public class DokanyFileInfo extends Structure implements Structure.ByReference {
 	/**
 	 * This can be used to carry information between operation. HANDLE This can be whatever type such as {@link com.sun.jna.platform.win32.WinNT.HANDLE},
@@ -71,6 +67,11 @@ public class DokanyFileInfo extends Structure implements Structure.ByReference {
 	 */
 	public byte WriteToEndOfFile;
 
+	public DokanyFileInfo(Pointer p){
+		super(p);
+		read();
+	}
+
 	@Override
 	protected List<String> getFieldOrder() {
 		return Arrays.asList(
@@ -108,5 +109,21 @@ public class DokanyFileInfo extends Structure implements Structure.ByReference {
 
 	public final boolean writeToEndOfFile() {
 		return WriteToEndOfFile != 0;
+	}
+
+	@Override
+	public String toString() {
+		return "DokanyFileInfo{" +
+				"Context=" + Context +
+				", DokanContext=" + DokanContext +
+				", DokanOptions=" + DokanOptions +
+				", ProcessId=" + ProcessId +
+				", IsDirectory=" + IsDirectory +
+				", DeleteOnClose=" + DeleteOnClose +
+				", PagingIo=" + PagingIo +
+				", SynchronousIo=" + SynchronousIo +
+				", Nocache=" + Nocache +
+				", WriteToEndOfFile=" + WriteToEndOfFile +
+				'}';
 	}
 }
